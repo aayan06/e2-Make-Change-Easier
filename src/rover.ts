@@ -3,8 +3,11 @@ export {};
 const canvas = document.querySelector<HTMLCanvasElement>("#rover-canvas")!;
 const ctx = canvas.getContext("2d")!;
 const readout = document.querySelector<HTMLParagraphElement>("#rover-readout")!;
+const pendingList = document.querySelector<HTMLOListElement>("#rover-pending")!;
+const queueStatus = document.querySelector<HTMLParagraphElement>(
+  "#rover-queue-status",
+)!;
 
-// B2: the compass is just a list
 type Heading = { name: string; dx: number; dy: number };
 
 const compass: Heading[] = [
@@ -36,10 +39,8 @@ const right: Command = {
   },
 };
 
-function doNow(c: Command) {
-  c.run();
-  drawRover();
-}
+// B3: orders waiting to be sent
+let plan: Command[] = [];
 
 function drawRover() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -65,14 +66,45 @@ function drawRover() {
   }`;
 }
 
-document.querySelector<HTMLButtonElement>("#rover-forward")!.onclick = () =>
-  doNow(forward);
-document.querySelector<HTMLButtonElement>("#rover-right")!.onclick = () =>
-  doNow(right);
+function drawPlan() {
+  pendingList.replaceChildren();
+  for (const c of plan) {
+    const li = document.createElement("li");
+    li.textContent = c.label;
+    pendingList.append(li);
+  }
+  queueStatus.textContent = plan.length ? `${plan.length} pending` : "Empty";
+}
+
+document.querySelector<HTMLButtonElement>("#rover-forward")!.onclick = () => {
+  plan.push(forward);
+  drawPlan();
+};
+document.querySelector<HTMLButtonElement>("#rover-right")!.onclick = () => {
+  plan.push(right);
+  drawPlan();
+};
+document.querySelector<HTMLButtonElement>("#rover-run")!.onclick = () => {
+  for (const c of plan) c.run();
+  plan = [];
+  drawPlan();
+  drawRover();
+};
+document.querySelector<HTMLButtonElement>("#rover-clear")!.onclick = () => {
+  plan = [];
+  drawPlan();
+};
 document.querySelector<HTMLButtonElement>("#rover-reset")!.onclick = () => {
   x = 2;
   y = 2;
   facing = 0;
+  plan = [];
+  drawPlan();
   drawRover();
 };
+
+document.querySelector<HTMLButtonElement>("#rover-run")!.disabled = false;
+document.querySelector<HTMLButtonElement>("#rover-clear")!.disabled = false;
+
+drawPlan();
 drawRover();
