@@ -15,11 +15,21 @@ let count = 0;
 let panel: HTMLParagraphElement | null = null;
 let panelUpdates = 0;
 
-// C1: the facts both views agree on
 type Shield = { charge: number; capacity: number; missing: number };
 
 function snapshot(): Shield {
   return { charge: count, capacity: MAX, missing: MAX - count };
+}
+
+// C2: the shield announces when it changed
+const shieldEvents = new EventTarget();
+
+function setCount(next: number) {
+  const bounded = Math.max(0, Math.min(MAX, next));
+  if (bounded === count) return;
+  count = bounded;
+  shieldEvents.dispatchEvent(new Event("changed"));
+  if (panel) updateStats(snapshot());
 }
 
 function drawMeter(s: Shield) {
@@ -34,6 +44,9 @@ function drawMeter(s: Shield) {
   readout.textContent = `Shield charge: ${s.charge} / ${s.capacity}`;
 }
 
+// HUD wiring lives here, not in setCount
+shieldEvents.addEventListener("changed", () => drawMeter(snapshot()));
+
 function renderStats(s: Shield) {
   if (!panel) return;
   panel.textContent =
@@ -44,15 +57,6 @@ function updateStats(s: Shield) {
   panelUpdates++;
   diagnostic.textContent = `Inspector deliveries: ${panelUpdates}`;
   renderStats(s);
-}
-
-function setCount(next: number) {
-  const bounded = Math.max(0, Math.min(MAX, next));
-  if (bounded === count) return;
-  count = bounded;
-  const s = snapshot();
-  drawMeter(s);
-  if (panel) updateStats(s);
 }
 
 document.querySelector<HTMLButtonElement>("#counter-less")!.onclick = () =>
