@@ -21,7 +21,6 @@ function snapshot(): Shield {
   return { charge: count, capacity: MAX, missing: MAX - count };
 }
 
-// C2: the shield announces when it changed
 const shieldEvents = new EventTarget();
 
 function setCount(next: number) {
@@ -29,7 +28,6 @@ function setCount(next: number) {
   if (bounded === count) return;
   count = bounded;
   shieldEvents.dispatchEvent(new Event("changed"));
-  if (panel) updateStats(snapshot());
 }
 
 function drawMeter(s: Shield) {
@@ -44,7 +42,6 @@ function drawMeter(s: Shield) {
   readout.textContent = `Shield charge: ${s.charge} / ${s.capacity}`;
 }
 
-// HUD wiring lives here, not in setCount
 shieldEvents.addEventListener("changed", () => drawMeter(snapshot()));
 
 function renderStats(s: Shield) {
@@ -53,10 +50,11 @@ function renderStats(s: Shield) {
     `Shield charge: ${s.charge} · Missing charge: ${s.missing}`;
 }
 
-function updateStats(s: Shield) {
+// C3: the inspector's own listener; added on open, removed on close
+function onShieldChanged() {
   panelUpdates++;
   diagnostic.textContent = `Inspector deliveries: ${panelUpdates}`;
-  renderStats(s);
+  renderStats(snapshot());
 }
 
 document.querySelector<HTMLButtonElement>("#counter-less")!.onclick = () =>
@@ -70,9 +68,11 @@ document.querySelector<HTMLButtonElement>("#counter-open")!.onclick = () => {
   panel = document.createElement("p");
   host.append(panel);
   renderStats(snapshot());
+  shieldEvents.addEventListener("changed", onShieldChanged);
 };
 document.querySelector<HTMLButtonElement>("#counter-close")!.onclick = () => {
   if (!panel) return;
+  shieldEvents.removeEventListener("changed", onShieldChanged);
   panel.remove();
   panel = null;
 };
