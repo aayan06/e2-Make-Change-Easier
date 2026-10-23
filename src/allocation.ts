@@ -12,6 +12,18 @@ type ShiftResult = {
   balance: number;
 };
 
+// A3: what one chart row looks like
+type ChartRow = {
+  label: string;
+  color: string;
+  value: (shift: ShiftResult) => number;
+};
+
+const chartRows: ChartRow[] = [
+  { label: "Production", color: "#27766b", value: (s) => s.production },
+  { label: "Consumption", color: "#a44d23", value: (s) => s.consumption },
+];
+
 const canvas = document.querySelector<HTMLCanvasElement>("#allocation-canvas")!;
 const ctx = canvas.getContext("2d")!;
 const readout = document.querySelector<HTMLParagraphElement>(
@@ -39,13 +51,16 @@ function drawChart(shift: ShiftResult) {
   ctx.fillStyle = "#233e43";
   ctx.font = "14px system-ui";
   ctx.fillText(`Producers: ${shift.assigned} / ${CREW_SIZE}`, 18, 76);
-  ctx.fillText(`Production: ${shift.production}`, 18, 102);
-  ctx.fillStyle = "#27766b";
-  ctx.fillRect(18, 110, shift.production * 14, 20);
-  ctx.fillStyle = "#233e43";
-  ctx.fillText(`Consumption: ${shift.consumption}`, 18, 154);
-  ctx.fillStyle = "#a44d23";
-  ctx.fillRect(18, 162, shift.consumption * 14, 20);
+
+  // one loop draws every row; row position comes from its spot in the list
+  chartRows.forEach((row, i) => {
+    const top = 102 + i * 52;
+    const value = row.value(shift);
+    ctx.fillStyle = "#233e43";
+    ctx.fillText(`${row.label}: ${value}`, 18, top);
+    ctx.fillStyle = row.color;
+    ctx.fillRect(18, top + 8, value * 14, 20);
+  });
 }
 
 // Numerical view
